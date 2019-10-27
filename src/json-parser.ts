@@ -181,34 +181,9 @@ class Parser {
     }
 
     isSpecToken(type: TokenType): boolean {
-        
+
     }
 
-    // 21         String key = tokenizer.next().getValue();
-    // 22         if (!isToken(TokenType.COLON)) {
-    // 23             throw new JsonParseException("Invalid JSON input.");
-    // 24         } else {
-    // 25             tokenizer.next(); //consume ':'
-    // 26             if (isPrimary()) {
-    // 27                 Value primary = new Primary(tokenizer.next().getValue());
-    // 28                 map.put(key, primary);
-    // 29             } else if (isToken(TokenType.START_ARRAY)) {
-    // 30                 Value array = array();
-    // 31                 map.put(key, array);
-    // 32             }
-    // 33             if (isToken(TokenType.COMMA)) {
-    // 34                 tokenizer.next(); //consume ','
-    // 35                 if (isToken(TokenType.STRING)) {
-    // 36                     map = key(map);
-    // 37                 }
-    // 38             } else if (isToken(TokenType.END_OBJ)) {
-    // 39                 tokenizer.next(); //consume '}'
-    // 40                 return map;
-    // 41             } else {
-    // 42                 throw new JsonParseException("Invalid JSON input.");
-    // 43             }
-    // 44         }
-    // 45         return map;
     getKeyOf(map: {[p in string]: any }) {
         
     }
