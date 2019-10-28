@@ -21,7 +21,21 @@ class Token {
 
 class Tokenizer {
     textIndex = 0;
+    tokens: Token[] = [];
+
+
+
     constructor(public readonly text: string) {
+    }
+
+    tokenize() {
+        let token: Token | null = null;
+
+        do {
+            token = this.start();
+            this.tokens.push(token);
+        } while (token.type !== TokenType.END_DOC);
+
     }
 
     start() {
@@ -163,6 +177,11 @@ class Tokenizer {
         }
         return new Token(TokenType.NUMBER, redString);
     }
+    
+    peek(index: number) {
+        return this.tokens[index];
+    }
+
 }
 
 
@@ -172,20 +191,56 @@ class Parser {
     object() {
         this.tokenizer.next();
         const map: {[p in string]: any } = {};
-        if (this.isSpecToken(TokenType.END_OBJ)) {
+        if (this.isToken(TokenType.END_OBJ)) {
             this.tokenizer.next();
-        } else if (this.isSpecToken(TokenType.STRING)) {
+        } else if (this.isToken(TokenType.STRING)) {
             map = this.getKeyOf(map);
         }
         return map;
     }
 
-    isSpecToken(type: TokenType): boolean {
+    array() {
+        this.tokenizer.next();
+        let list: any[] = [];
+        let myArr: any[] = [];
+        if (this.isToken(TokenType.START_ARRAY)) {
+            myArr = this.array();
+            list.push(myArr);
+            if (this.isToken(TokenType.COMMA)) {
+                this.tokenizer.next();
+                list = this.element(list);
+            }
+        } else if (this.isPrimary()) {
+            list = this.element(list);
+        } else if (this.isToken(TokenType.COMMA)) {
+            list.push(this.object());
+            while (this.isToken(TokenType.COMMA)) {
+                this.tokenizer.next();
+                list.push(this.object());
+            }
+        } else if (this.isToken(TokenType.END_ARRAY)) {
+            this.tokenizer.next();
+            myArr = [...list];
+            return myArr;
+        }
+        this.tokenizer.next();
+        myArr = [...list];
+        return myArr;
+    }
 
+    element() {
+
+    }
+
+    isToken(type: TokenType): boolean {
+        
     }
 
     getKeyOf(map: {[p in string]: any }) {
         
     }
 
+    isPrimary() {
+        return 
+    }
 }
