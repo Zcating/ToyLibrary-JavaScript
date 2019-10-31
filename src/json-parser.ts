@@ -24,7 +24,6 @@ class Tokenizer {
     tokens: Token[] = [];
 
 
-
     constructor(public readonly text: string) {
     }
 
@@ -35,7 +34,6 @@ class Tokenizer {
             token = this.start();
             this.tokens.push(token);
         } while (token.type !== TokenType.END_DOC);
-
     }
 
     start() {
@@ -91,15 +89,19 @@ class Tokenizer {
     }
     
     next() {
-        return this.text.charAt(this.textIndex ++);
+        return this.tokens.splice(0, 1)[0];
+    }
+
+    peek(index: number) {
+        return this.tokens[index];
     }
 
 
-    isSpace(cursor: string) {
+    private isSpace(cursor: string) {
         return cursor === ' ';
     }
 
-    isNull(cursor: string) {
+    private isNull(cursor: string) {
         if (cursor !== 'n') {
             return false;
         }
@@ -118,7 +120,7 @@ class Tokenizer {
         return true;
     }
 
-    isTrue(cursor: string) {
+    private isTrue(cursor: string) {
         if (cursor !== 't') {
             return false;
         }
@@ -137,7 +139,7 @@ class Tokenizer {
         return true;
     }
 
-    isFalse(cursor: string) {
+    private isFalse(cursor: string) {
         if (cursor !== 'f') {
             return false;
         }
@@ -160,12 +162,12 @@ class Tokenizer {
         return true;
     }
 
-    isNum(cursor: string) {
+    private isNum(cursor: string) {
         const res = cursor.charCodeAt(0);
         return (48 <= res && res <= 57) || cursor === '-';
     }
 
-    readNum() {
+    private readNum() {
         let cursor = this.read();
         let redString = '';
         while (cursor !== ',') {
@@ -177,10 +179,7 @@ class Tokenizer {
         }
         return new Token(TokenType.NUMBER, redString);
     }
-    
-    peek(index: number) {
-        return this.tokens[index];
-    }
+
 
 }
 
