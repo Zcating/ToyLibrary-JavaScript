@@ -15,7 +15,7 @@ enum TokenType {
 class Token {
     constructor(
         public readonly type: TokenType,
-        public readonly value: string | null
+        public readonly value: string
     ) {}
 }
 
@@ -29,23 +29,42 @@ class Tokenizer {
 
     tokenize() {
         let token: Token | null = null;
-
+        this.textIndex = 0;
         do {
             token = this.start();
             this.tokens.push(token);
         } while (token.type !== TokenType.END_DOC);
     }
 
-    start() {
-        this.textIndex = 0;
+    read() {
+        return this.text.charAt(this.textIndex ++);
+    }
 
+    unread() {
+        this.textIndex--;
+    }
+
+    next() {
+        return this.tokens.splice(0, 1)[0];
+    }
+
+    peek(index: number) {
+        return this.tokens[index];
+    }
+
+    hasNext() {
+        return this.tokens[0].type !== TokenType.END_DOC;
+    }
+
+
+    private start() {
         let cursor = '';
         do {
             cursor = this.read();
         } while (this.isSpace(cursor));
 
         if (this.isNull(cursor)) {
-            return new Token(TokenType.NULL, null);
+            return new Token(TokenType.NULL, 'null');
         } else if (cursor === ',') {
             return new Token(TokenType.COMMA, ',');
         } else if (cursor === ':') {
@@ -73,29 +92,12 @@ class Tokenizer {
         } else if (this.isNum(cursor)) {
             this.unread();
             return this.readNum();
-        } else if (cursor === '') {
+        } else if (this.textIndex >= (this.text.length - 1)) {
             return new Token(TokenType.END_DOC, 'EOF');
         } else {
             throw new Error('Invalid JSON input.');
         }
     }
-
-    read() {
-        return this.text.charAt(this.textIndex ++);
-    }
-
-    unread() {
-        this.textIndex--;
-    }
-    
-    next() {
-        return this.tokens.splice(0, 1)[0];
-    }
-
-    peek(index: number) {
-        return this.tokens[index];
-    }
-
 
     private isSpace(cursor: string) {
         return cursor === ' ';
@@ -179,31 +181,30 @@ class Tokenizer {
         }
         return new Token(TokenType.NUMBER, redString);
     }
-
-
 }
 
 
 class Parser {
     constructor(private tokenizer: Tokenizer) {}
 
-    object() {
+    getObject() {
         this.tokenizer.next();
-        const map: {[p in string]: any } = {};
+        let map: {[p in string]: any } = {};
         if (this.isToken(TokenType.END_OBJ)) {
             this.tokenizer.next();
+            return {...map};
         } else if (this.isToken(TokenType.STRING)) {
             map = this.getKeyOf(map);
         }
-        return map;
+        return {...map};
     }
 
-    array() {
+    getArray() {
         this.tokenizer.next();
         let list: any[] = [];
         let myArr: any[] = [];
         if (this.isToken(TokenType.START_ARRAY)) {
-            myArr = this.array();
+            myArr = this.getArray();
             list.push(myArr);
             if (this.isToken(TokenType.COMMA)) {
                 this.tokenizer.next();
@@ -212,10 +213,10 @@ class Parser {
         } else if (this.isPrimary()) {
             list = this.element(list);
         } else if (this.isToken(TokenType.COMMA)) {
-            list.push(this.object());
+            list.push(this.getObject());
             while (this.isToken(TokenType.COMMA)) {
                 this.tokenizer.next();
-                list.push(this.object());
+                list.push(this.getObject());
             }
         } else if (this.isToken(TokenType.END_ARRAY)) {
             this.tokenizer.next();
@@ -227,19 +228,102 @@ class Parser {
         return myArr;
     }
 
-    element() {
-
+    element(list: any[]) {
+        list.push(this.parseAsPrimary(this.tokenizer.next().value));
+        if (this.isToken(TokenType.COMMA)) {
+            // ,
+            this.tokenizer.next();
+            if (this.isPrimary()) {
+                list = this.element(list);
+            } else if (this.isToken(TokenType.START_OBJ)) {
+                list.push(this.getObject());
+            } else if (this.isToken(TokenType.START_ARRAY)) {
+                list.push(this.getArray());
+            } else {
+                throw new Error('Invalid JSON input.');
+            }
+        } else if (this.isToken(TokenType.END_ARRAY)) {
+            return list;
+        } else {
+            throw new Error('Invalid JSON input.');
+        }
+        return list;
     }
 
-    isToken(type: TokenType): boolean {
-        
+
+    isToken(value: TokenType | string): boolean {
+        const token = this.tokenizer.peek(0);
+        if (typeof value === 'string') {
+            return token.value === value;
+        } else {
+            return token.type === value;
+        }
     }
 
     getKeyOf(map: {[p in string]: any }) {
-        
+        const key = this.tokenizer.next().value;
+        if (!this.isToken(TokenType.COLON)) {
+            throw new Error('');
+        } else {
+            // :
+            this.tokenizer.next();
+            if (this.isPrimary()) {
+                const token = this.tokenizer.next();
+                map[key] = this.parseAsPrimary(token.value);
+                console.log(key, token.value);
+            } else if (this.isToken(TokenType.START_ARRAY)) {
+                map[key] = this.getArray();
+            }
+
+            if (this.isToken(TokenType.COMMA)) {
+                // ,
+                this.tokenizer.next();
+
+                if (this.isToken(TokenType.STRING)) {
+                    // recursive
+                    map = this.getKeyOf(map);
+                }
+            } else if (this.isToken(TokenType.END_OBJ)) {
+                // }
+                this.tokenizer.next();
+                return map;
+            } else {
+                throw new Error('Invalid JSON input.');
+            }
+        }
+        return map;
     }
 
     isPrimary() {
-        return 
+        const type = this.tokenizer.peek(0).type;
+        return type === TokenType.BOOLEAN ||
+            type === TokenType.NULL ||
+            type === TokenType.NUMBER ||
+            type === TokenType.STRING;
     }
+
+    parseAsPrimary(value: string): number | boolean | string | null | undefined {
+        if (value === 'true') {
+            return true;
+        }
+        if (value === 'false') {
+            return false;
+        }
+        if (value === 'null') {
+            return null;
+        }
+        const res = parseFloat(value);
+        if (!Number.isNaN(res)) {
+            return res;
+        }
+        return value;
+    }
+}
+
+
+export function parseJson(text: string) {
+    const tokenizer = new Tokenizer(text);
+    tokenizer.tokenize();
+    const parser = new Parser(tokenizer);
+    return parser.getObject();
 }

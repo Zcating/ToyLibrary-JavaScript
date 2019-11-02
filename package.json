@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc"
+    "test:parser": "tsc -p ./src/json-parser/ --outDir ./dist/json-parser/; node ./dist/json-parser/test.js"
   },
   "author": "",
   "license": "ISC",

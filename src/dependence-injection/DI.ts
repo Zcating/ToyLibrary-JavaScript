@@ -17,7 +17,6 @@ class DemoService {
     test() {
         console.log(this.service.a);
     }
-
 }
 
 const Factory = <T>(target: Constructor<T>): T => {
