@@ -272,25 +272,30 @@ class Parser {
             if (this.isPrimary()) {
                 const token = this.tokenizer.next();
                 map[key] = this.parseAsPrimary(token.value);
-                console.log(key, token.value);
             }
             else if (this.isToken(TokenType.START_ARRAY)) {
                 map[key] = this.getArray();
             }
+            else if (this.isToken(TokenType.START_OBJ)) {
+                map[key] = this.getObject();
+            }
+            // ,
             if (this.isToken(TokenType.COMMA)) {
-                // ,
+                // consume: ,
                 this.tokenizer.next();
                 if (this.isToken(TokenType.STRING)) {
                     // recursive
                     map = this.getKeyOf(map);
+                    console.log(this.tokenizer.tokens);
                 }
             }
             else if (this.isToken(TokenType.END_OBJ)) {
-                // }
+                // consume: }
                 this.tokenizer.next();
                 return map;
             }
             else {
+                console.log('error', this.tokenizer.tokens);
                 throw new Error('Invalid JSON input.');
             }
         }
@@ -323,6 +328,7 @@ class Parser {
 function parseJson(text) {
     const tokenizer = new Tokenizer(text);
     tokenizer.tokenize();
+    console.log(tokenizer.tokens);
     const parser = new Parser(tokenizer);
     return parser.getObject();
 }
